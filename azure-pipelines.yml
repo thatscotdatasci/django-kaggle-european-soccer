@@ -1,0 +1,42 @@
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - kaggleeuropenasoccer/*
+
+pool:
+  name: 'Default'
+strategy:
+  matrix:
+    Python35:
+      PYTHON_VERSION: '3.5'
+    Python36:
+      PYTHON_VERSION: '3.6'
+    Python37:
+      PYTHON_VERSION: '3.7'
+  maxParallel: 3
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(PYTHON_VERSION)'
+    architecture: 'x64'
+
+- script: |
+    python -m pip install --upgrade pip setuptools wheel
+    pip install -r requirements.txt
+    pip install unittest-xml-reporting
+  displayName: 'Install prerequisites'
+
+- script: |
+    pushd kaggleeuropeansoccer
+    python manage.py test --testrunner xmlrunner.extra.djangotestrunner.XMLTestRunner --no-input
+  displayName: 'Run tests'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: "**/TEST-*.xml"
+    testRunTitle: 'Python $(PYTHON_VERSION)'
+  condition: succeededOrFailed()
